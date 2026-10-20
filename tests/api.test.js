@@ -54,6 +54,32 @@ test('manual analysis labels results honestly and does not retain or return uplo
   assert.equal('saved' in result, false);
 });
 
+test('production same-origin writes work behind an HTTPS-terminating proxy', async () => {
+  const previousNodeEnv = process.env.NODE_ENV;
+  const previousClientOrigin = process.env.CLIENT_ORIGIN;
+  process.env.NODE_ENV = 'production';
+  delete process.env.CLIENT_ORIGIN;
+  try {
+    const body = new FormData();
+    body.set('category', 'cardboard');
+    const response = await fetch(`${baseUrl}/api/waste/analyze`, {
+      method: 'POST',
+      headers: {
+        Origin: baseUrl.replace('http://', 'https://'),
+        'X-Forwarded-Proto': 'https'
+      },
+      body
+    });
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).mode, 'manual');
+  } finally {
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+    if (previousClientOrigin === undefined) delete process.env.CLIENT_ORIGIN;
+    else process.env.CLIENT_ORIGIN = previousClientOrigin;
+  }
+});
+
 test('AI is not represented as available when no provider key is configured', async () => {
   const previousKey = process.env.OPENAI_API_KEY;
   delete process.env.OPENAI_API_KEY;

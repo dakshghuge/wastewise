@@ -19,6 +19,7 @@ const analysisLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 15, standar
 const write = [requireSameOrigin];
 
 app.disable('x-powered-by');
+app.set('trust proxy', 1);
 app.use(helmet({
   referrerPolicy: { policy: 'no-referrer' },
   contentSecurityPolicy: {
