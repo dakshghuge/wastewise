@@ -17,7 +17,7 @@ async function analyze(req, res, next) {
       } catch (error) {
         if (error.code === 'AI_NOT_CONFIGURED') {
           return res.status(503).json({
-            error: 'AI image recognition is not enabled for this deployment. Set OPENAI_API_KEY in the Render service environment and redeploy. To get guidance without AI, remove the photo and select a category manually.',
+            error: 'Gemini image recognition is not enabled for this deployment. Add GEMINI_API_KEY in the Render service environment and redeploy. To get guidance without AI, remove the photo and select a category manually.',
             code: error.code
           });
         }

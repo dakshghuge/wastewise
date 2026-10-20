@@ -21,6 +21,10 @@ test('health and categories endpoints return usable configuration', async () => 
   const healthPayload = await health.json();
   assert.equal(healthPayload.status, 'ok');
   assert.equal('firestore' in healthPayload, false);
+  const config = await fetch(`${baseUrl}/api/config`);
+  const configPayload = await config.json();
+  assert.equal(configPayload.aiProvider, 'Gemini');
+  assert.equal(configPayload.aiConfigured, Boolean(process.env.GEMINI_API_KEY));
   const response = await fetch(`${baseUrl}/api/waste/categories`);
   const payload = await response.json();
   assert.equal(response.status, 200);
@@ -81,8 +85,8 @@ test('production same-origin writes work behind an HTTPS-terminating proxy', asy
 });
 
 test('AI is not represented as available when no provider key is configured', async () => {
-  const previousKey = process.env.OPENAI_API_KEY;
-  delete process.env.OPENAI_API_KEY;
+  const previousKey = process.env.GEMINI_API_KEY;
+  delete process.env.GEMINI_API_KEY;
   try {
     const body = new FormData();
     body.set('image', new Blob([Buffer.from([0xff, 0xd8, 0xff])], { type: 'image/jpeg' }), 'item.jpg');
@@ -91,11 +95,11 @@ test('AI is not represented as available when no provider key is configured', as
     const result = await response.json();
     assert.equal(response.status, 503);
     assert.equal(result.code, 'AI_NOT_CONFIGURED');
-    assert.match(result.error, /set OPENAI_API_KEY/i);
+    assert.match(result.error, /GEMINI_API_KEY/i);
     assert.match(result.error, /remove the photo/i);
   } finally {
-    if (previousKey === undefined) delete process.env.OPENAI_API_KEY;
-    else process.env.OPENAI_API_KEY = previousKey;
+    if (previousKey === undefined) delete process.env.GEMINI_API_KEY;
+    else process.env.GEMINI_API_KEY = previousKey;
   }
 });
 

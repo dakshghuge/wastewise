@@ -37,7 +37,8 @@ app.use(helmet({
 }));
 app.get('/api/config', (req, res) => res.json({
   maxUploadBytes: maxBytes,
-  aiConfigured: Boolean(process.env.OPENAI_API_KEY)
+  aiConfigured: Boolean(process.env.GEMINI_API_KEY),
+  aiProvider: 'Gemini'
 }));
 app.use(cors({
   origin(origin, callback) {
@@ -52,7 +53,7 @@ app.use('/api', apiLimiter);
 
 app.get('/api/health', (req, res) => res.json({
   status: 'ok',
-  ai: process.env.OPENAI_API_KEY ? 'configured' : 'manual-mode-available',
+  ai: process.env.GEMINI_API_KEY ? 'configured' : 'manual-mode-available',
   timestamp: new Date().toISOString()
 }));
 

@@ -5,17 +5,17 @@ WasteWise AI is a responsive, vanilla HTML/CSS/JavaScript and Express applicatio
 ## Features
 
 - Public browsing for waste categories, reuse ideas, recycling guidance, and learning resources; no account or sign-in is required.
-- Image analysis with an optional server-side OpenAI vision integration, or manual category selection when AI is not configured.
+- Image analysis with optional server-side Gemini vision integration, or manual category selection when AI is not configured.
 - Image uploads are processed in server memory only. The app does not save uploaded images, scan results, user profiles, feedback, activities, or collection requests.
 - Reuse ideas and recycling guidance come from the bundled starter data. No nearby-center locator is included.
 - No Firebase Authentication, Firestore, or Cloud Storage integration is used by the running app. Firebase sign-in providers enabled in the Firebase Console do not affect this app.
 
-Images are temporarily held in memory by the app while being analyzed and then discarded. If `OPENAI_API_KEY` is configured, the image is sent to the configured AI provider for analysis; review that provider's data-handling terms.
+Images are temporarily held in memory by the app while being analyzed and then discarded. If `GEMINI_API_KEY` is configured, the image is sent to Google's Gemini API for analysis; review Google's data-handling terms for the selected API tier before uploading images.
 
 ## Requirements
 
 - Node.js 20 or later
-- Optional OpenAI API key for image recognition
+- Optional Gemini API key for image recognition
 
 ## Local setup
 
@@ -24,7 +24,7 @@ npm install
 Copy-Item .env.example .env
 ```
 
-Set `OPENAI_API_KEY` in `.env` only if image recognition is wanted. Without it, users can select a category manually. Do not commit `.env` or API keys.
+Set `GEMINI_API_KEY` in `.env` only if image recognition is wanted. The default model is `gemini-2.5-flash`; set `GEMINI_MODEL` only when choosing another supported model. Without a key, users can select a category manually. Do not commit `.env` or API keys.
 
 Start the application:
 
@@ -48,7 +48,16 @@ The Firestore rules in `firestore.rules` deny direct client access. They are not
 
 The app is configured for Render as a single Node.js web service. To deploy, push the project to a GitHub or GitLab repository, sign in to [Render](https://render.com), choose **New > Blueprint**, and connect the repository. Render will use `render.yaml` to build and start the service. The deployed app URL serves both the website and its Express API.
 
-The Render Free plan is intended for hobby projects and testing. Free services spin down when idle and may take about a minute to wake up; usage limits apply. Review [Render's current free-plan limitations](https://render.com/docs/free). No database or persistent disk is required by this stateless version. `OPENAI_API_KEY` is optional; without it, manual category selection works but AI image recognition is unavailable. Add the key in the Render dashboard only if needed, and do not commit API keys or `.env`.
+The Render Free plan is intended for hobby projects and testing. Free services spin down when idle and may take about a minute to wake up; usage limits apply. Review [Render's current free-plan limitations](https://render.com/docs/free). No database or persistent disk is required by this stateless version. `GEMINI_API_KEY` is optional; without it, manual category selection works but AI image recognition is unavailable. Add the key in the Render dashboard only if needed, and do not commit API keys or `.env`.
+
+### Configure Gemini image recognition
+
+1. Sign in to [Google AI Studio](https://aistudio.google.com/) and open [API keys](https://aistudio.google.com/apikey).
+2. Create an API key in a Google Cloud project. Keep the key private; do not add it to source code or commit it.
+3. In the Render dashboard, open the `wastewise-ai` service, select **Environment**, and add `GEMINI_API_KEY` with the key as its value.
+4. Save the environment change and redeploy the service. Verify `GET /api/config` reports `"aiConfigured": true`.
+
+The default model is `gemini-2.5-flash`. Gemini API free-tier availability and request quotas depend on the model, account, and region; review [current Gemini API pricing and limits](https://ai.google.dev/gemini-api/docs/pricing). Google states that data used on the free tier may be used to improve its products. Do not upload sensitive images unless you have reviewed and accept the applicable terms. API availability and free-tier terms can change.
 
 ## API highlights
 

@@ -4,6 +4,7 @@ const { validateRecognition } = require('../src/services/ai/responseValidator');
 const { getIdeas } = require('../src/services/recommendationService');
 const { getGuide } = require('../src/services/recyclingService');
 const { getDisposalGuidance } = require('../src/services/disposalService');
+const { recognizeWaste } = require('../src/services/ai/wasteRecognitionService');
 
 test('recognition accepts valid structured output and requires confirmation for low confidence', () => {
   const result = validateRecognition({
@@ -26,6 +27,71 @@ test('recognition rejects unsupported categories and malformed confidence', () =
     objectName: 'Item', category: 'plastic', material: 'plastic', confidence: 2, needsConfirmation: false
   }), /confidence/i);
   assert.throws(() => validateRecognition(null), /invalid recognition object/i);
+});
+
+test('Gemini image recognition sends image data and validates structured response', async () => {
+  const previousKey = process.env.GEMINI_API_KEY;
+  const previousModel = process.env.GEMINI_MODEL;
+  const previousFetch = global.fetch;
+  process.env.GEMINI_API_KEY = 'test-key';
+  process.env.GEMINI_MODEL = 'test-vision-model';
+  let request;
+  global.fetch = async (url, options) => {
+    request = { url, options };
+    return {
+      ok: true,
+      json: async () => ({
+        candidates: [{
+          content: {
+            parts: [{
+              text: JSON.stringify({
+                objectName: 'Plastic bottle',
+                category: 'plastic',
+                material: 'plastic',
+                confidence: 0.93,
+                needsConfirmation: false
+              })
+            }]
+          }
+        }]
+      })
+    };
+  };
+
+  try {
+    const result = await recognizeWaste(Buffer.from('image bytes'), 'image/jpeg');
+    assert.equal(result.category, 'plastic');
+    assert.equal(result.needsConfirmation, false);
+    assert.match(request.url, /models\/test-vision-model:generateContent$/);
+    assert.equal(request.options.headers['x-goog-api-key'], 'test-key');
+    const body = JSON.parse(request.options.body);
+    assert.equal(body.contents[0].parts[1].inlineData.mimeType, 'image/jpeg');
+    assert.equal(body.contents[0].parts[1].inlineData.data, Buffer.from('image bytes').toString('base64'));
+    assert.equal(body.generationConfig.responseMimeType, 'application/json');
+  } finally {
+    global.fetch = previousFetch;
+    if (previousKey === undefined) delete process.env.GEMINI_API_KEY;
+    else process.env.GEMINI_API_KEY = previousKey;
+    if (previousModel === undefined) delete process.env.GEMINI_MODEL;
+    else process.env.GEMINI_MODEL = previousModel;
+  }
+});
+
+test('Gemini image recognition reports missing key without contacting the provider', async () => {
+  const previousKey = process.env.GEMINI_API_KEY;
+  const previousFetch = global.fetch;
+  delete process.env.GEMINI_API_KEY;
+  global.fetch = async () => {
+    throw new Error('Provider must not be called without a key.');
+  };
+  try {
+    await assert.rejects(recognizeWaste(Buffer.from('image'), 'image/png'), {
+      code: 'AI_NOT_CONFIGURED'
+    });
+  } finally {
+    global.fetch = previousFetch;
+    if (previousKey !== undefined) process.env.GEMINI_API_KEY = previousKey;
+  }
 });
 
 test('reuse search filters by category and query', () => {
