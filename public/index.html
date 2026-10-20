@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#155c43">
+  <meta name="description" content="WasteWise AI helps you explore practical reuse, recycling, and safer disposal options for everyday waste.">
+  <title>WasteWise AI — Turn Waste Into Worth</title>
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <script defer src="/assets/js/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="#home" aria-label="WasteWise AI home"><span class="brand-mark" aria-hidden="true">↻</span><span>WasteWise <b>AI</b></span></a>
+    <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false">☰</button>
+    <nav id="navigation" aria-label="Main navigation">
+      <a href="#home" data-view="home">Home</a>
+      <a href="#scanner" data-view="scanner">Scan waste</a>
+      <a href="#ideas" data-view="ideas">Reuse ideas</a>
+      <a href="#guides" data-view="guides">Recycling guide</a>
+      <a href="#learn" data-view="learn">Learn</a>
+      
+      
+      
+      
+    </nav>
+  </header>
+  
+  <main id="main">
+    <section class="view active" id="view-home" aria-labelledby="hero-title">
+      <div class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">A little wiser. A lot less waste.</p>
+          <h1 id="hero-title">Give your waste<br><span>a second life.</span></h1>
+          <p class="hero-lede">Explore practical ways to reuse, recycle, and responsibly dispose of everyday items.</p>
+          <div class="hero-actions"><a class="button primary" href="#scanner">Analyze my waste <span aria-hidden="true">→</span></a><a class="button secondary" href="#ideas">Explore reuse ideas</a></div>
+          <p class="hero-note">Image recognition requires an AI key. You can also choose a category manually.</p>
+        </div>
+        <div class="hero-art" aria-hidden="true"><div class="sun"></div><div class="hill hill-back"></div><div class="hill hill-front"></div><div class="bottle">♻</div><div class="leaf leaf-one">✦</div><div class="leaf leaf-two">✦</div></div>
+      </div>
+      <div class="trust-strip"><span>♻ Reuse first</span><span>⌂ Local rules matter</span><span>✓ Safety before shortcuts</span></div>
+      <section class="content-section">
+        <div class="section-heading"><p class="eyebrow">A simpler way forward</p><h2>Waste decisions, made clearer.</h2><p>Get a starting point for an item, then confirm local instructions where collection rules differ.</p></div>
+        <div class="steps-grid">
+          <article class="step-card"><span>01</span><h3>Share a photo</h3><p>Upload a clear image, or choose a waste category yourself.</p></article>
+          <article class="step-card"><span>02</span><h3>Review the result</h3><p>See what recognition can and cannot tell from the image.</p></article>
+          <article class="step-card"><span>03</span><h3>Choose a next step</h3><p>Explore safe reuse, recycling preparation, and disposal guidance.</p></article>
+        </div>
+      </section>
+      <section class="content-section categories-section">
+        <div class="section-heading"><p class="eyebrow">Know your materials</p><h2>Start with a category.</h2></div>
+        <div class="category-grid" id="home-categories"></div>
+      </section>
+    </section>
+
+    <section class="view content-view" id="view-scanner" aria-labelledby="scanner-title">
+      <div class="section-heading"><p class="eyebrow">Waste scanner</p><h1 id="scanner-title">What can this become?</h1><p>Upload an image for AI recognition when configured, or select the category manually.</p></div>
+      <div class="scanner-layout">
+        <form id="scan-form" class="panel scanner-panel">
+          <label class="dropzone" id="dropzone" for="image-file">
+            <span class="upload-icon" aria-hidden="true">↑</span><strong>Drop an image here</strong><span>or browse JPEG, PNG, or WebP · max 5 MB</span>
+            <input id="image-file" name="image" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+          </label>
+          <div id="preview-wrap" class="preview-wrap hidden"><img id="image-preview" alt="Selected waste item preview"><button type="button" class="text-button" id="remove-image">Remove image</button></div>
+          <label for="manual-category">Manual category <span class="optional">optional</span></label>
+          <select id="manual-category" name="category"><option value="">Use AI recognition if configured</option></select>
+          <p class="field-note">Manual mode does not claim to identify the object or material.</p>
+          <div class="progress-wrap hidden" id="progress-wrap"><progress id="upload-progress" max="100" value="0"></progress><span id="processing-status" role="status">Preparing image…</span></div>
+          <button class="button primary full-width" id="analyze-button" type="submit">Analyze item</button>
+          <p class="form-message" id="scan-message" role="status"></p>
+        </form>
+        <aside class="panel side-note"><span class="note-icon">✦</span><h2>Good to know</h2><p>Photos can’t reliably confirm every material, coating, or contamination. Treat uncertain results as a starting point.</p><p>Local recycling rules vary. We’ll tell you when guidance needs a local check.</p><div class="notice">No sign-in is required. Uploaded images and analysis results are not saved. Images are temporarily processed for analysis and then discarded.</div></aside>
+      </div>
+      <div id="result-panel" class="result-panel hidden" aria-live="polite"></div>
+    </section>
+
+    <section class="view content-view" id="view-ideas" aria-labelledby="ideas-title">
+      <div class="section-heading"><p class="eyebrow">Reuse library</p><h1 id="ideas-title">Make more from what you have.</h1><p>Browse practical ideas from a small reviewed starter collection.</p></div>
+      <div class="filter-bar"><label class="search-field">Search ideas<input type="search" id="idea-search" placeholder="Try “cardboard” or “planter”"></label><label>Category<select id="idea-category"></select></label><label>Difficulty<select id="idea-difficulty"><option value="">Any difficulty</option><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select></label></div>
+      <div class="card-grid" id="ideas-list"></div><p class="empty-state hidden" id="ideas-empty">No matching ideas. Try changing your filters.</p>
+      
+    </section>
+
+    <section class="view content-view" id="view-guides" aria-labelledby="guides-title">
+      <div class="section-heading"><p class="eyebrow">Recycling guide</p><h1 id="guides-title">Prepare it the right way.</h1><p>General guidance only. Acceptance is specific to your local waste program.</p></div>
+      <div class="filter-bar"><label>Choose a category<select id="guide-category"></select></label></div>
+      <article class="panel guide-detail" id="guide-detail"></article>
+    </section>
+
+    <section class="view content-view" id="view-learn" aria-labelledby="learn-title">
+      <div class="section-heading"><p class="eyebrow">Learn</p><h1 id="learn-title">Small habits. Better systems.</h1><p>Helpful basics for safer, more thoughtful waste decisions.</p></div>
+      <div class="card-grid" id="resources-list"></div>
+    </section>
+
+    
+  </main>
+  <footer><a class="brand footer-brand" href="#home"><span class="brand-mark">↻</span> WasteWise AI</a><p>Turn Waste Into Worth.</p><div><a href="#guides">Recycling guide</a><a href="#learn">Learn</a><button type="button" id="privacy-open">Privacy notice</button></div><small>Confirm local instructions with your waste authority. No environmental savings are estimated.</small></footer>
+
+  
+  
+  <dialog id="privacy-dialog" class="dialog-card"><form method="dialog"><button class="dialog-close" aria-label="Close">×</button></form><h2>Privacy at a glance</h2><p>No sign-in is required. Uploaded images and analysis results are temporarily processed and are not saved by this app. If AI recognition is configured, the image is sent to the configured AI provider for analysis.</p><p>The app does not create user accounts, scan history, or activity records.</p><button class="button primary" type="button" id="privacy-close">Understood</button></dialog>
+</body>
+</html>
