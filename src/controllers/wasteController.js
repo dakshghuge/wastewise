@@ -11,23 +11,28 @@ async function analyze(req, res, next) {
     let recognition;
     let mode = 'ai';
 
-    if (providedCategory) {
-      if (!categoryById.has(providedCategory)) return res.status(400).json({ error: 'Select a valid waste category.' });
-      mode = 'manual';
-      recognition = {
-        objectName: req.file ? 'Manual category selection' : 'Waste category selected manually',
-        category: providedCategory,
-        material: 'unknown',
-        confidence: null,
-        needsConfirmation: false
-      };
-    } else {
+    if (req.file) {
       try {
         recognition = await recognizeWaste(req.file.buffer, req.imageMimeType);
       } catch (error) {
-        if (error.code === 'AI_NOT_CONFIGURED') return res.status(503).json({ error: error.message, code: error.code });
+        if (error.code === 'AI_NOT_CONFIGURED') {
+          return res.status(503).json({
+            error: 'AI image recognition is not enabled for this deployment. Set OPENAI_API_KEY in the Render service environment and redeploy. To get guidance without AI, remove the photo and select a category manually.',
+            code: error.code
+          });
+        }
         return next(error);
       }
+    } else if (providedCategory) {
+      if (!categoryById.has(providedCategory)) return res.status(400).json({ error: 'Select a valid waste category.' });
+      mode = 'manual';
+      recognition = {
+        objectName: 'Waste category selected manually',
+        category: providedCategory,
+        material: 'not assessed',
+        confidence: null,
+        needsConfirmation: false
+      };
     }
 
     const category = recognition.category;

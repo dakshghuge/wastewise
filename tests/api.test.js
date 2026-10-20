@@ -42,12 +42,12 @@ test('the responsive application shell is served at the site root', async () => 
 test('manual analysis labels results honestly and does not retain or return uploaded images', async () => {
   const body = new FormData();
   body.set('category', 'cardboard');
-  body.set('image', new Blob([Buffer.from([0xff, 0xd8, 0xff])], { type: 'image/jpeg' }), 'temporary.jpg');
   const response = await fetch(`${baseUrl}/api/waste/analyze`, { method: 'POST', body });
   const result = await response.json();
   assert.equal(response.status, 200);
   assert.equal(result.mode, 'manual');
-  assert.equal(result.recognition.objectName, 'Manual category selection');
+  assert.equal(result.recognition.objectName, 'Waste category selected manually');
+  assert.equal(result.recognition.material, 'not assessed');
   assert.equal(result.recognition.confidence, null);
   assert.equal('imageDataUrl' in result, false);
   assert.equal('scanId' in result, false);
@@ -86,10 +86,13 @@ test('AI is not represented as available when no provider key is configured', as
   try {
     const body = new FormData();
     body.set('image', new Blob([Buffer.from([0xff, 0xd8, 0xff])], { type: 'image/jpeg' }), 'item.jpg');
+    body.set('category', 'paper');
     const response = await fetch(`${baseUrl}/api/waste/analyze`, { method: 'POST', body });
     const result = await response.json();
     assert.equal(response.status, 503);
     assert.equal(result.code, 'AI_NOT_CONFIGURED');
+    assert.match(result.error, /set OPENAI_API_KEY/i);
+    assert.match(result.error, /remove the photo/i);
   } finally {
     if (previousKey === undefined) delete process.env.OPENAI_API_KEY;
     else process.env.OPENAI_API_KEY = previousKey;

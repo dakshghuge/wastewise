@@ -63,9 +63,9 @@
             <input id="image-file" name="image" type="file" accept="image/jpeg,image/png,image/webp" hidden>
           </label>
           <div id="preview-wrap" class="preview-wrap hidden"><img id="image-preview" alt="Selected waste item preview"><button type="button" class="text-button" id="remove-image">Remove image</button></div>
-          <label for="manual-category">Manual category <span class="optional">optional</span></label>
+          <label for="manual-category">Manual category <span class="optional">used only without a photo</span></label>
           <select id="manual-category" name="category"><option value="">Use AI recognition if configured</option></select>
-          <p class="field-note">Manual mode does not claim to identify the object or material.</p>
+          <p class="field-note">A photo always uses AI recognition when configured. Without AI, remove the photo to get guidance for a manually selected category.</p>
           <div class="progress-wrap hidden" id="progress-wrap"><progress id="upload-progress" max="100" value="0"></progress><span id="processing-status" role="status">Preparing image…</span></div>
           <button class="button primary full-width" id="analyze-button" type="submit">Analyze item</button>
           <p class="form-message" id="scan-message" role="status"></p>

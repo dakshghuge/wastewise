@@ -156,22 +156,24 @@ $('#scan-form').addEventListener('submit', async (event) => {
   if (!state.selectedFile && !$('#manual-category').value) return showMessage(message, 'Choose an image or select a category for manual mode.', true);
   const body = new FormData();
   if (state.selectedFile) body.append('image', state.selectedFile);
-  if ($('#manual-category').value) body.append('category', $('#manual-category').value);
+  if (!state.selectedFile && $('#manual-category').value) body.append('category', $('#manual-category').value);
   $('#progress-wrap').classList.remove('hidden');
   $('#analyze-button').disabled = true;
   $('#processing-status').textContent = 'Uploading image for temporary processing…';
   showMessage(message, '');
+  let completed = false;
   try {
     const result = await xhrUpload('/api/waste/analyze', body, (percent) => {
       $('#upload-progress').value = percent;
       if (percent === 100) $('#processing-status').textContent = 'Analyzing image…';
     });
     renderResult(result);
+    completed = true;
     showMessage(message, result.mode === 'manual' ? 'Manual category selected. No AI recognition was performed.' : 'Analysis complete. Your image was discarded and the result was not saved.');
   } catch (error) {
     showMessage(message, error.message, true);
   } finally {
-    clearSelectedImage();
+    if (completed) clearSelectedImage();
     $('#analyze-button').disabled = false;
     $('#progress-wrap').classList.add('hidden');
     $('#upload-progress').value = 0;
@@ -190,7 +192,11 @@ function xhrUpload(url, body, onProgress) {
       let data;
       try { data = JSON.parse(request.responseText); } catch { data = {}; }
       if (request.status >= 200 && request.status < 300) resolve(data);
-      else reject(new Error(data.error || `Analysis failed (${request.status}).`));
+      else {
+        const error = new Error(data.error || `Analysis failed (${request.status}).`);
+        error.code = data.code;
+        reject(error);
+      }
     });
     request.addEventListener('error', () => reject(new Error('Network error. Check your connection and try again.')));
     request.addEventListener('timeout', () => reject(new Error('The request timed out. Try again.')));
@@ -208,7 +214,8 @@ function renderResult(result) {
   summary.append(html('p', 'eyebrow', result.mode === 'manual' ? 'Manual category' : 'Image recognition'));
   summary.append(html('h2', '', result.recognition.objectName));
   const category = state.categories.find((item) => item.id === result.recognition.category);
-  summary.append(html('p', '', `Category: ${category ? category.name : 'Unknown'} · Material: ${result.recognition.material || 'unknown'}`));
+  const material = result.mode === 'manual' ? 'not assessed' : (result.recognition.material || 'unknown');
+  summary.append(html('p', '', `Category: ${category ? category.name : 'Unknown'} · Material: ${material}`));
   if (result.recognition.needsConfirmation) summary.append(html('span', 'badge uncertain', 'Please confirm this result'));
   else summary.append(html('span', 'badge', result.mode === 'manual' ? 'Selected by you' : `Confidence ${Math.round(result.recognition.confidence * 100)}%`));
   summary.append(html('p', 'field-note', 'Images and analysis results are not saved by this app.'));
