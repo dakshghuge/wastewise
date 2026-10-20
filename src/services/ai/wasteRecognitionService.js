@@ -8,11 +8,11 @@ async function recognizeWaste(imageBuffer, mimeType) {
     throw error;
   }
 
-  const model = (process.env.GEMINI_MODEL || 'gemini-2.5-flash').replace(/^models\//, '');
+  const model = (process.env.GEMINI_MODEL || 'gemini-3.8-flash').replace(/^models\//, '');
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000);
+  const timeout = setTimeout(() => controller.abort(), 40000);
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/interactions', {
       method: 'POST',
       signal: controller.signal,
       headers: {
@@ -20,26 +20,29 @@ async function recognizeWaste(imageBuffer, mimeType) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        contents: [{
-          role: 'user',
-          parts: [
-            {
-              text: `Identify the main visible waste item in this image. Do not infer material beyond visible evidence. Choose exactly one category from: ${[...categoryById.keys()].join(', ')}. If unclear, choose "unknown", use low confidence, and set needsConfirmation to true. Do not provide disposal advice.`
-            },
-            { inlineData: { mimeType, data: imageBuffer.toString('base64') } }
-          ]
-        }],
-        generationConfig: {
-          temperature: 0,
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: 'OBJECT',
+        model,
+        input: [
+          {
+            type: 'text',
+            text: `Identify the main visible waste item in this image. Do not infer material beyond visible evidence. Choose exactly one category from: ${[...categoryById.keys()].join(', ')}. If unclear, choose "unknown", use low confidence, and set needsConfirmation to true. Do not provide disposal advice.`
+          },
+          {
+            type: 'image',
+            data: imageBuffer.toString('base64'),
+            mime_type: mimeType
+          }
+        ],
+        response_format: {
+          type: 'text',
+          mime_type: 'application/json',
+          schema: {
+            type: 'object',
             properties: {
-              objectName: { type: 'STRING' },
-              category: { type: 'STRING', enum: [...categoryById.keys()] },
-              material: { type: 'STRING' },
-              confidence: { type: 'NUMBER' },
-              needsConfirmation: { type: 'BOOLEAN' }
+              objectName: { type: 'string' },
+              category: { type: 'string', enum: [...categoryById.keys()] },
+              material: { type: 'string' },
+              confidence: { type: 'number' },
+              needsConfirmation: { type: 'boolean' }
             },
             required: ['objectName', 'category', 'material', 'confidence', 'needsConfirmation']
           }
@@ -53,17 +56,14 @@ async function recognizeWaste(imageBuffer, mimeType) {
         ? payload.error.message.replaceAll(process.env.GEMINI_API_KEY, '[redacted]').slice(0, 400)
         : 'No additional provider details were returned.';
       const message = response.status === 404
-        ? `Gemini could not find model "${model}" or it does not support generateContent. Check GEMINI_MODEL in Render; use a supported model ID such as gemini-2.5-flash without a "models/" prefix. Provider details: ${providerMessage}`
+        ? `Gemini could not find model "${model}" or it does not support the Interactions API. Check GEMINI_MODEL in Render and use a model available to your API project. Provider details: ${providerMessage}`
         : `Gemini API request failed with status ${response.status}. Provider details: ${providerMessage}`;
       const error = new Error(message);
       error.status = response.status === 429 ? 503 : 502;
       throw error;
     }
     const payload = await response.json();
-    const content = payload.candidates?.[0]?.content?.parts
-      ?.map((part) => part.text || '')
-      .join('')
-      .trim();
+    const content = typeof payload.output_text === 'string' ? payload.output_text.trim() : '';
     if (!content) throw new Error('Gemini response did not contain recognition data.');
     return validateRecognition(JSON.parse(content));
   } catch (error) {

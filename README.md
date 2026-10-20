@@ -24,7 +24,7 @@ npm install
 Copy-Item .env.example .env
 ```
 
-Set `GEMINI_API_KEY` in `.env` only if image recognition is wanted. The default model is `gemini-2.5-flash`; set `GEMINI_MODEL` only when choosing another supported model. Without a key, users can select a category manually. Do not commit `.env` or API keys.
+Set `GEMINI_API_KEY` in `.env` only if image recognition is wanted. The default model is `gemini-3.8-flash`; set `GEMINI_MODEL` only when choosing another supported model. Without a key, users can select a category manually. Do not commit `.env` or API keys.
 
 Start the application:
 
@@ -57,9 +57,9 @@ The Render Free plan is intended for hobby projects and testing. Free services s
 3. In the Render dashboard, open the `wastewise-ai` service, select **Environment**, and add `GEMINI_API_KEY` with the key as its value.
 4. Save the environment change and redeploy the service. Verify `GET /api/config` reports `"aiConfigured": true`.
 
-The default model is `gemini-2.5-flash`. Gemini API free-tier availability and request quotas depend on the model, account, and region; review [current Gemini API pricing and limits](https://ai.google.dev/gemini-api/docs/pricing). Google states that data used on the free tier may be used to improve its products. Do not upload sensitive images unless you have reviewed and accept the applicable terms. API availability and free-tier terms can change.
+The default model is `gemini-3.8-flash`, called through the Gemini Interactions API with structured JSON output. Gemini API free-tier availability and request quotas depend on the model, account, and region; review [current Gemini API pricing and limits](https://ai.google.dev/gemini-api/docs/pricing). Google states that data used on the free tier may be used to improve its products. Do not upload sensitive images unless you have reviewed and accept the applicable terms. API availability and free-tier terms can change. Image analysis may take up to 40 seconds; timed-out requests return an error without saving the image.
 
-If image analysis returns a Gemini `404`, check the Render service's `GEMINI_MODEL` environment variable. Use a model ID supported by `generateContent`, such as `gemini-2.5-flash`, without the `models/` prefix, then redeploy. The app includes Google's provider error details in the response to help diagnose key/project/model access issues.
+If image analysis returns a Gemini `404`, check the Render service's `GEMINI_MODEL` environment variable. Use a model ID available to the Interactions API and your API project, such as `gemini-3.8-flash`, without the `models/` prefix, then redeploy. The app includes Google's provider error details in the response to help diagnose key/project/model access issues.
 
 ## API highlights
 

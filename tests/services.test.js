@@ -41,19 +41,13 @@ test('Gemini image recognition sends image data and validates structured respons
     return {
       ok: true,
       json: async () => ({
-        candidates: [{
-          content: {
-            parts: [{
-              text: JSON.stringify({
-                objectName: 'Plastic bottle',
-                category: 'plastic',
-                material: 'plastic',
-                confidence: 0.93,
-                needsConfirmation: false
-              })
-            }]
-          }
-        }]
+        output_text: JSON.stringify({
+          objectName: 'Plastic bottle',
+          category: 'plastic',
+          material: 'plastic',
+          confidence: 0.93,
+          needsConfirmation: false
+        })
       })
     };
   };
@@ -62,12 +56,14 @@ test('Gemini image recognition sends image data and validates structured respons
     const result = await recognizeWaste(Buffer.from('image bytes'), 'image/jpeg');
     assert.equal(result.category, 'plastic');
     assert.equal(result.needsConfirmation, false);
-    assert.match(request.url, /models\/test-vision-model:generateContent$/);
+    assert.match(request.url, /\/v1beta\/interactions$/);
     assert.equal(request.options.headers['x-goog-api-key'], 'test-key');
     const body = JSON.parse(request.options.body);
-    assert.equal(body.contents[0].parts[1].inlineData.mimeType, 'image/jpeg');
-    assert.equal(body.contents[0].parts[1].inlineData.data, Buffer.from('image bytes').toString('base64'));
-    assert.equal(body.generationConfig.responseMimeType, 'application/json');
+    assert.equal(body.model, 'test-vision-model');
+    assert.equal(body.input[1].type, 'image');
+    assert.equal(body.input[1].mime_type, 'image/jpeg');
+    assert.equal(body.input[1].data, Buffer.from('image bytes').toString('base64'));
+    assert.equal(body.response_format.mime_type, 'application/json');
   } finally {
     global.fetch = previousFetch;
     if (previousKey === undefined) delete process.env.GEMINI_API_KEY;
@@ -101,14 +97,12 @@ test('Gemini model 404 includes provider details and does not expose the API key
   process.env.GEMINI_API_KEY = 'test-secret-key';
   process.env.GEMINI_MODEL = 'models/missing-model';
   global.fetch = async (url) => {
-    assert.match(url, /models\/missing-model:generateContent$/);
+    assert.match(url, /\/v1beta\/interactions$/);
     return {
       ok: false,
       status: 404,
       json: async () => ({
-        error: {
-          message: 'models/missing-model is not found for API key test-secret-key'
-        }
+        error: { message: 'model missing-model is not found for API key test-secret-key' }
       })
     };
   };
@@ -118,7 +112,7 @@ test('Gemini model 404 includes provider details and does not expose the API key
       (error) => {
         assert.equal(error.status, 502);
         assert.match(error.message, /GEMINI_MODEL in Render/);
-        assert.match(error.message, /models\/missing-model is not found/);
+        assert.match(error.message, /model missing-model is not found/);
         assert.doesNotMatch(error.message, /test-secret-key/);
         return true;
       }
