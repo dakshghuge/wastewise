@@ -94,6 +94,44 @@ test('Gemini image recognition reports missing key without contacting the provid
   }
 });
 
+test('Gemini model 404 includes provider details and does not expose the API key', async () => {
+  const previousKey = process.env.GEMINI_API_KEY;
+  const previousModel = process.env.GEMINI_MODEL;
+  const previousFetch = global.fetch;
+  process.env.GEMINI_API_KEY = 'test-secret-key';
+  process.env.GEMINI_MODEL = 'models/missing-model';
+  global.fetch = async (url) => {
+    assert.match(url, /models\/missing-model:generateContent$/);
+    return {
+      ok: false,
+      status: 404,
+      json: async () => ({
+        error: {
+          message: 'models/missing-model is not found for API key test-secret-key'
+        }
+      })
+    };
+  };
+  try {
+    await assert.rejects(
+      recognizeWaste(Buffer.from('image'), 'image/jpeg'),
+      (error) => {
+        assert.equal(error.status, 502);
+        assert.match(error.message, /GEMINI_MODEL in Render/);
+        assert.match(error.message, /models\/missing-model is not found/);
+        assert.doesNotMatch(error.message, /test-secret-key/);
+        return true;
+      }
+    );
+  } finally {
+    global.fetch = previousFetch;
+    if (previousKey === undefined) delete process.env.GEMINI_API_KEY;
+    else process.env.GEMINI_API_KEY = previousKey;
+    if (previousModel === undefined) delete process.env.GEMINI_MODEL;
+    else process.env.GEMINI_MODEL = previousModel;
+  }
+});
+
 test('reuse search filters by category and query', () => {
   assert.deepEqual(getIdeas({ category: 'cardboard' }).map((idea) => idea.id), ['box-organizer']);
   assert.deepEqual(getIdeas({ q: 'cotton' }).map((idea) => idea.id), ['cloth-cleaning']);

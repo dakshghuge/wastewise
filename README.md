@@ -59,6 +59,8 @@ The Render Free plan is intended for hobby projects and testing. Free services s
 
 The default model is `gemini-2.5-flash`. Gemini API free-tier availability and request quotas depend on the model, account, and region; review [current Gemini API pricing and limits](https://ai.google.dev/gemini-api/docs/pricing). Google states that data used on the free tier may be used to improve its products. Do not upload sensitive images unless you have reviewed and accept the applicable terms. API availability and free-tier terms can change.
 
+If image analysis returns a Gemini `404`, check the Render service's `GEMINI_MODEL` environment variable. Use a model ID supported by `generateContent`, such as `gemini-2.5-flash`, without the `models/` prefix, then redeploy. The app includes Google's provider error details in the response to help diagnose key/project/model access issues.
+
 ## API highlights
 
 - `GET /api/health`, `GET /api/config`, `GET /api/waste/categories`

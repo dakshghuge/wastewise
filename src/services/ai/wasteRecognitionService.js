@@ -8,7 +8,7 @@ async function recognizeWaste(imageBuffer, mimeType) {
     throw error;
   }
 
-  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const model = (process.env.GEMINI_MODEL || 'gemini-2.5-flash').replace(/^models\//, '');
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20000);
   try {
@@ -48,7 +48,14 @@ async function recognizeWaste(imageBuffer, mimeType) {
     });
 
     if (!response.ok) {
-      const error = new Error(`Gemini API request failed with status ${response.status}.`);
+      const payload = await response.json().catch(() => null);
+      const providerMessage = typeof payload?.error?.message === 'string'
+        ? payload.error.message.replaceAll(process.env.GEMINI_API_KEY, '[redacted]').slice(0, 400)
+        : 'No additional provider details were returned.';
+      const message = response.status === 404
+        ? `Gemini could not find model "${model}" or it does not support generateContent. Check GEMINI_MODEL in Render; use a supported model ID such as gemini-2.5-flash without a "models/" prefix. Provider details: ${providerMessage}`
+        : `Gemini API request failed with status ${response.status}. Provider details: ${providerMessage}`;
+      const error = new Error(message);
       error.status = response.status === 429 ? 503 : 502;
       throw error;
     }
