@@ -8,7 +8,8 @@ async function recognizeWaste(imageBuffer, mimeType) {
     throw error;
   }
 
-  const model = (process.env.GEMINI_MODEL || 'gemini-3.8-flash').replace(/^models\//, '');
+  const configuredModel = (process.env.GEMINI_MODEL || 'gemini-3.8-flash').replace(/^models\//, '');
+  const model = configuredModel === 'gemini-2.5-flash' ? 'gemini-3.8-flash' : configuredModel;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 40000);
   try {

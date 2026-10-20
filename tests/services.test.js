@@ -73,6 +73,41 @@ test('Gemini image recognition sends image data and validates structured respons
   }
 });
 
+test('Gemini image recognition upgrades the retired 2.5 Flash model setting', async () => {
+  const previousKey = process.env.GEMINI_API_KEY;
+  const previousModel = process.env.GEMINI_MODEL;
+  const previousFetch = global.fetch;
+  process.env.GEMINI_API_KEY = 'test-key';
+  process.env.GEMINI_MODEL = 'gemini-2.5-flash';
+  let requestBody;
+  global.fetch = async (_url, options) => {
+    requestBody = JSON.parse(options.body);
+    return {
+      ok: true,
+      json: async () => ({
+        output_text: JSON.stringify({
+          objectName: 'Paper cup',
+          category: 'paper',
+          material: 'paper',
+          confidence: 0.8,
+          needsConfirmation: false
+        })
+      })
+    };
+  };
+
+  try {
+    await recognizeWaste(Buffer.from('image'), 'image/jpeg');
+    assert.equal(requestBody.model, 'gemini-3.8-flash');
+  } finally {
+    global.fetch = previousFetch;
+    if (previousKey === undefined) delete process.env.GEMINI_API_KEY;
+    else process.env.GEMINI_API_KEY = previousKey;
+    if (previousModel === undefined) delete process.env.GEMINI_MODEL;
+    else process.env.GEMINI_MODEL = previousModel;
+  }
+});
+
 test('Gemini image recognition reports missing key without contacting the provider', async () => {
   const previousKey = process.env.GEMINI_API_KEY;
   const previousFetch = global.fetch;
