@@ -1,4 +1,6 @@
 node_modules/
+.firebase/
+public/assets/js/app.bundle.js
 .env
 .env.*
 !.env.example

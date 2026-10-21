@@ -7,7 +7,7 @@
   <meta name="description" content="WasteWise AI helps you explore practical reuse, recycling, and safer disposal options for everyday waste.">
   <title>WasteWise AI — Turn Waste Into Worth</title>
   <link rel="stylesheet" href="/assets/css/styles.css">
-  <script defer src="/assets/js/app.js"></script>
+  <script type="module" src="/assets/js/app.bundle.js?v=5"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -35,7 +35,7 @@
           <h1 id="hero-title">Give your waste<br><span>a second life.</span></h1>
           <p class="hero-lede">Explore practical ways to reuse, recycle, and responsibly dispose of everyday items.</p>
           <div class="hero-actions"><a class="button primary" href="#scanner">Analyze my waste <span aria-hidden="true">→</span></a><a class="button secondary" href="#ideas">Explore reuse ideas</a></div>
-          <p class="hero-note">Image recognition requires an AI key. You can also choose a category manually.</p>
+          <p class="hero-note">Image recognition uses Firebase AI Logic. You can also choose a category manually.</p>
         </div>
         <div class="hero-art" aria-hidden="true"><div class="sun"></div><div class="hill hill-back"></div><div class="hill hill-front"></div><div class="bottle">♻</div><div class="leaf leaf-one">✦</div><div class="leaf leaf-two">✦</div></div>
       </div>
@@ -62,6 +62,18 @@
             <span class="upload-icon" aria-hidden="true">↑</span><strong>Drop an image here</strong><span>or browse JPEG, PNG, or WebP · max 5 MB</span>
             <input id="image-file" name="image" type="file" accept="image/jpeg,image/png,image/webp" hidden>
           </label>
+          <button class="button secondary camera-button" id="camera-button" type="button"><span aria-hidden="true">▣</span> Open camera scanner</button>
+          <section id="camera-scanner" class="camera-scanner hidden" aria-label="Camera scanner">
+            <div class="camera-viewfinder">
+              <video id="camera-video" autoplay muted playsinline aria-label="Live camera preview"></video>
+              <span class="scan-frame" aria-hidden="true"></span>
+            </div>
+            <p class="camera-hint">Center the waste item in the frame, then capture it.</p>
+            <div class="camera-controls">
+              <button class="button primary" id="capture-photo" type="button" disabled>Capture photo</button>
+              <button class="button secondary" id="cancel-camera" type="button">Cancel</button>
+            </div>
+          </section>
           <div id="preview-wrap" class="preview-wrap hidden"><img id="image-preview" alt="Selected waste item preview"><button type="button" class="text-button" id="remove-image">Remove image</button></div>
           <label for="manual-category">Manual category <span class="optional">used only without a photo</span></label>
           <select id="manual-category" name="category"><option value="">Use AI recognition if configured</option></select>
@@ -70,7 +82,7 @@
           <button class="button primary full-width" id="analyze-button" type="submit">Analyze item</button>
           <p class="form-message" id="scan-message" role="status"></p>
         </form>
-        <aside class="panel side-note"><span class="note-icon">✦</span><h2>Good to know</h2><p>Photos can’t reliably confirm every material, coating, or contamination. Treat uncertain results as a starting point.</p><p>Local recycling rules vary. We’ll tell you when guidance needs a local check.</p><div class="notice">No sign-in is required. Uploaded images and analysis results are not saved. Images are temporarily processed for analysis and then discarded.</div></aside>
+        <aside class="panel side-note"><span class="note-icon">✦</span><h2>Good to know</h2><p>Photos can’t reliably confirm every material, coating, or contamination. Treat uncertain results as a starting point.</p><p>Local recycling rules vary. We’ll tell you when guidance needs a local check.</p></aside>
       </div>
       <div id="result-panel" class="result-panel hidden" aria-live="polite"></div>
     </section>
@@ -99,6 +111,6 @@
 
   
   
-  <dialog id="privacy-dialog" class="dialog-card"><form method="dialog"><button class="dialog-close" aria-label="Close">×</button></form><h2>Privacy at a glance</h2><p>No sign-in is required. Uploaded images and analysis results are temporarily processed and are not saved by this app. If AI recognition is configured, the image is sent to the configured AI provider for analysis.</p><p>The app does not create user accounts, scan history, or activity records.</p><button class="button primary" type="button" id="privacy-close">Understood</button></dialog>
+  <dialog id="privacy-dialog" class="dialog-card"><form method="dialog"><button class="dialog-close" aria-label="Close">×</button></form><h2>Privacy at a glance</h2><p>No sign-in is required. Uploaded images and analysis results are not saved by this app. When you request AI recognition, the image is sent to Google through Firebase AI Logic. Google may handle data differently depending on the API tier; review the current <a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener noreferrer">Gemini API terms</a> before uploading sensitive images.</p><p>The app does not create user accounts, scan history, or activity records.</p><button class="button primary" type="button" id="privacy-close">Understood</button></dialog>
 </body>
 </html>

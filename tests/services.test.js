@@ -1,10 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { validateRecognition } = require('../src/services/ai/responseValidator');
+const { validateRecognition, validateWasteAnalysis } = require('../src/services/ai/responseValidator');
 const { getIdeas } = require('../src/services/recommendationService');
 const { getGuide } = require('../src/services/recyclingService');
 const { getDisposalGuidance } = require('../src/services/disposalService');
-const { recognizeWaste } = require('../src/services/ai/wasteRecognitionService');
 
 test('recognition accepts valid structured output and requires confirmation for low confidence', () => {
   const result = validateRecognition({
@@ -29,136 +28,94 @@ test('recognition rejects unsupported categories and malformed confidence', () =
   assert.throws(() => validateRecognition(null), /invalid recognition object/i);
 });
 
-test('Gemini image recognition sends image data and validates structured response', async () => {
-  const previousKey = process.env.GEMINI_API_KEY;
-  const previousModel = process.env.GEMINI_MODEL;
-  const previousFetch = global.fetch;
-  process.env.GEMINI_API_KEY = 'test-key';
-  process.env.GEMINI_MODEL = 'test-vision-model';
-  let request;
-  global.fetch = async (url, options) => {
-    request = { url, options };
-    return {
-      ok: true,
-      json: async () => ({
-        output_text: JSON.stringify({
-          objectName: 'Plastic bottle',
-          category: 'plastic',
-          material: 'plastic',
-          confidence: 0.93,
-          needsConfirmation: false
-        })
-      })
-    };
-  };
-
-  try {
-    const result = await recognizeWaste(Buffer.from('image bytes'), 'image/jpeg');
-    assert.equal(result.category, 'plastic');
-    assert.equal(result.needsConfirmation, false);
-    assert.match(request.url, /\/v1beta\/interactions$/);
-    assert.equal(request.options.headers['x-goog-api-key'], 'test-key');
-    const body = JSON.parse(request.options.body);
-    assert.equal(body.model, 'test-vision-model');
-    assert.equal(body.input[1].type, 'image');
-    assert.equal(body.input[1].mime_type, 'image/jpeg');
-    assert.equal(body.input[1].data, Buffer.from('image bytes').toString('base64'));
-    assert.equal(body.response_format.mime_type, 'application/json');
-  } finally {
-    global.fetch = previousFetch;
-    if (previousKey === undefined) delete process.env.GEMINI_API_KEY;
-    else process.env.GEMINI_API_KEY = previousKey;
-    if (previousModel === undefined) delete process.env.GEMINI_MODEL;
-    else process.env.GEMINI_MODEL = previousModel;
-  }
+test('detailed image analysis requires item-specific details and three tailored suggestions', () => {
+  const result = validateWasteAnalysis({
+    recognition: {
+      objectName: 'Crumpled paper cup',
+      category: 'paper',
+      material: 'paper, coating uncertain',
+      confidence: 0.91,
+      needsConfirmation: false
+    },
+    itemAssessment: {
+      summary: 'A used paper cup is visible, with its rim crushed and the inside condition unclear.',
+      observations: ['The cup is visibly crumpled.', 'A possible inner lining cannot be confirmed from the photo.'],
+      condition: 'unclear',
+      materialNotes: 'Paper cups may have a thin lining; the image cannot confirm its material.',
+      reuseOutlook: 'Reuse is most suitable for dry, clean, non-food-contact crafts or organization.',
+      preparationSteps: ['Empty and let the cup dry.', 'Check for grease, residue, and a lining before recycling.']
+    },
+    recyclingAssessment: {
+      status: 'check_local',
+      summary: 'Paper cups may have moisture-resistant linings that affect local recycling acceptance.',
+      checks: ['Check for food residue or grease.', 'Confirm whether the cup appears coated.'],
+      preparationSteps: ['Empty leftover contents.', 'Keep the cup dry.', 'Check local acceptance for lined cups.'],
+      localNotes: 'Recycling acceptance for coated paper cups varies by local collection program.'
+    },
+    reuseIdeas: Array.from({ length: 3 }, (_, index) => ({
+      type: 'reuse',
+      title: `Idea ${index + 1}`,
+      description: 'Reuse this clean, dry cup for a small household organizing task.',
+      suitability: 'Only use it if it is clean, dry, and structurally stable.',
+      materials: ['Clean cup'],
+      difficulty: 'easy',
+      estimatedTime: '5 minutes',
+      steps: ['Clean and dry the cup.', 'Use it to hold small lightweight items.'],
+      safetyNotes: ['Do not use a damaged cup for food or liquids.']
+    }))
+  });
+  assert.equal(result.recognition.objectName, 'Crumpled paper cup');
+  assert.equal(result.itemAssessment.observations.length, 2);
+  assert.equal(result.recyclingAssessment.preparationSteps.length, 3);
+  assert.equal(result.recyclingAssessment.status, 'check_local');
+  assert.equal(result.reuseIdeas.length, 3);
+  assert.equal(result.reuseIdeas[0].safetyNotes.length, 1);
 });
 
-test('Gemini image recognition upgrades the retired 2.5 Flash model setting', async () => {
-  const previousKey = process.env.GEMINI_API_KEY;
-  const previousModel = process.env.GEMINI_MODEL;
-  const previousFetch = global.fetch;
-  process.env.GEMINI_API_KEY = 'test-key';
-  process.env.GEMINI_MODEL = 'gemini-2.5-flash';
-  let requestBody;
-  global.fetch = async (_url, options) => {
-    requestBody = JSON.parse(options.body);
-    return {
-      ok: true,
-      json: async () => ({
-        output_text: JSON.stringify({
-          objectName: 'Paper cup',
-          category: 'paper',
-          material: 'paper',
-          confidence: 0.8,
-          needsConfirmation: false
-        })
-      })
-    };
+test('detailed analysis rejects missing suggestions and DIY ideas for hazardous items', () => {
+  const validPaperCup = {
+    recognition: {
+      objectName: 'Paper cup',
+      category: 'paper',
+      material: 'paper',
+      confidence: 0.8,
+      needsConfirmation: false
+    },
+    itemAssessment: {
+      summary: 'A paper cup is visible and appears intact, but its inner lining is not identifiable.',
+      observations: ['The cup appears intact.', 'No lining information is visible.'],
+      condition: 'unclear',
+      materialNotes: 'A photo cannot verify whether this cup has a plastic or other coating.',
+      reuseOutlook: 'Choose a dry, non-food use if the cup is clean and stable.',
+      preparationSteps: ['Empty and dry the cup.', 'Check for residue before deciding how to handle it.']
+    },
+    recyclingAssessment: {
+      status: 'check_local',
+      summary: 'Paper cups may have moisture-resistant linings that affect local recycling acceptance.',
+      checks: ['Check for food residue or grease.', 'Confirm whether the cup appears coated.'],
+      preparationSteps: ['Empty leftover contents.', 'Keep the cup dry.', 'Check local acceptance for lined cups.'],
+      localNotes: 'Recycling acceptance for coated paper cups varies by local collection program.'
+    },
+    reuseIdeas: Array.from({ length: 3 }, (_, index) => ({
+      type: 'reuse',
+      title: `Idea ${index + 1}`,
+      description: 'Reuse this clean cup for a simple, dry household organizing task.',
+      suitability: 'Suitable only when the cup is clean, dry, and stable.',
+      materials: ['Clean cup'],
+      difficulty: 'easy',
+      estimatedTime: '5 minutes',
+      steps: ['Clean and dry the cup.', 'Use it to hold small lightweight items.'],
+      safetyNotes: ['Do not use it for food or liquids.']
+    }))
   };
-
-  try {
-    await recognizeWaste(Buffer.from('image'), 'image/jpeg');
-    assert.equal(requestBody.model, 'gemini-3.8-flash');
-  } finally {
-    global.fetch = previousFetch;
-    if (previousKey === undefined) delete process.env.GEMINI_API_KEY;
-    else process.env.GEMINI_API_KEY = previousKey;
-    if (previousModel === undefined) delete process.env.GEMINI_MODEL;
-    else process.env.GEMINI_MODEL = previousModel;
-  }
-});
-
-test('Gemini image recognition reports missing key without contacting the provider', async () => {
-  const previousKey = process.env.GEMINI_API_KEY;
-  const previousFetch = global.fetch;
-  delete process.env.GEMINI_API_KEY;
-  global.fetch = async () => {
-    throw new Error('Provider must not be called without a key.');
-  };
-  try {
-    await assert.rejects(recognizeWaste(Buffer.from('image'), 'image/png'), {
-      code: 'AI_NOT_CONFIGURED'
-    });
-  } finally {
-    global.fetch = previousFetch;
-    if (previousKey !== undefined) process.env.GEMINI_API_KEY = previousKey;
-  }
-});
-
-test('Gemini model 404 includes provider details and does not expose the API key', async () => {
-  const previousKey = process.env.GEMINI_API_KEY;
-  const previousModel = process.env.GEMINI_MODEL;
-  const previousFetch = global.fetch;
-  process.env.GEMINI_API_KEY = 'test-secret-key';
-  process.env.GEMINI_MODEL = 'models/missing-model';
-  global.fetch = async (url) => {
-    assert.match(url, /\/v1beta\/interactions$/);
-    return {
-      ok: false,
-      status: 404,
-      json: async () => ({
-        error: { message: 'model missing-model is not found for API key test-secret-key' }
-      })
-    };
-  };
-  try {
-    await assert.rejects(
-      recognizeWaste(Buffer.from('image'), 'image/jpeg'),
-      (error) => {
-        assert.equal(error.status, 502);
-        assert.match(error.message, /GEMINI_MODEL in Render/);
-        assert.match(error.message, /model missing-model is not found/);
-        assert.doesNotMatch(error.message, /test-secret-key/);
-        return true;
-      }
-    );
-  } finally {
-    global.fetch = previousFetch;
-    if (previousKey === undefined) delete process.env.GEMINI_API_KEY;
-    else process.env.GEMINI_API_KEY = previousKey;
-    if (previousModel === undefined) delete process.env.GEMINI_MODEL;
-    else process.env.GEMINI_MODEL = previousModel;
-  }
+  assert.throws(() => validateWasteAnalysis({ ...validPaperCup, reuseIdeas: validPaperCup.reuseIdeas.slice(0, 2) }), /three or four/i);
+  const unknown = structuredClone(validPaperCup);
+  unknown.recognition.category = 'unknown';
+  assert.throws(() => validateWasteAnalysis(unknown), /unsupported recycling guidance/i);
+  const hazardous = structuredClone(validPaperCup);
+  hazardous.recognition.category = 'hazardous';
+  hazardous.recyclingAssessment.status = 'not_applicable';
+  assert.throws(() => validateWasteAnalysis(hazardous), /unsafe DIY suggestion/i);
 });
 
 test('reuse search filters by category and query', () => {

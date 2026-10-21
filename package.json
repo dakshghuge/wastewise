@@ -2,24 +2,25 @@
   "name": "wastewise-ai",
   "version": "1.0.0",
   "private": true,
+  "main": "src/server.js",
   "description": "WasteWise AI helps people identify, reuse, recycle, and safely dispose of waste.",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
-    "test": "node --test"
+    "build": "esbuild public/assets/js/app.js --bundle --format=esm --platform=browser --target=es2020 --outfile=public/assets/js/app.bundle.js",
+    "start": "npm run build && node src/server.js",
+    "dev": "npm run build && node --watch src/server.js",
+    "deploy:hosting": "npm run build && firebase deploy --only hosting --project wastewise-836c3",
+    "test": "npm run build && node --test"
   },
   "dependencies": {
-    "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "express-rate-limit": "^7.5.0",
-    "helmet": "^8.0.0",
-    "multer": "^2.4.0"
+    "firebase": "^12.0.0",
+    "helmet": "^8.0.0"
   },
-  "overrides": {
-    "uuid": "^11.1.1"
+  "devDependencies": {
+    "esbuild": "^0.25.0"
   }
 }
